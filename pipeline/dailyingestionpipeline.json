@@ -1,0 +1,166 @@
+{
+	"name": "dailyingestionpipeline",
+	"properties": {
+		"activities": [
+			{
+				"name": "Get Metadata1",
+				"type": "GetMetadata",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "Delimitxt",
+						"type": "DatasetReference"
+					},
+					"fieldList": [
+						"childItems"
+					],
+					"storeSettings": {
+						"type": "AzureBlobFSReadSettings",
+						"recursive": true,
+						"enablePartitionDiscovery": false
+					},
+					"formatSettings": {
+						"type": "DelimitedTextReadSettings"
+					}
+				}
+			},
+			{
+				"name": "Script1",
+				"type": "Script",
+				"dependsOn": [
+					{
+						"activity": "Set variable1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "sortedorderlist",
+					"type": "LinkedServiceReference"
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "Query",
+							"text": {
+								"value": "WITH raw_data AS (\n    -- Injects the raw ADF double-array variable\n    SELECT PARSE_JSON('@{string(variables('fileListVar'))}') AS obj\n),\nfile_list AS (\n    -- Double-flatten handles both outer and inner array layers safely\n    SELECT f.value:name::STRING AS file_name\n    FROM raw_data,\n    LATERAL FLATTEN(INPUT => obj) o,\n    LATERAL FLATTEN(INPUT => o.value) f\n),\nparsed_files AS (\n    SELECT\n        file_name,\n        -- Isolates the raw timestamp text string\n        REPLACE(SPLIT_PART(file_name, '_', 2), '.csv', '') AS ts_string,\n        -- Slices down to 14 characters to handle any length anomalies safely\n        LEFT(ts_string, 14) AS clean_ts,\n        -- Converts to a clean timestamp data type matching your target table\n        TO_TIMESTAMP_NTZ(clean_ts, 'YYYYMMDDHH24MISS') AS file_ts\n    FROM file_list\n    -- LOWER() makes the comparison case-insensitive to handle 'ho', 'HO', 'lo', or 'LO'\n    WHERE LOWER(file_name) LIKE LOWER('@{pipeline().parameters.FILE_PREFIX}_%.csv')\n)\nSELECT file_name, file_ts\nFROM parsed_files\nORDER BY file_ts ASC;\n",
+								"type": "Expression"
+							}
+						}
+					],
+					"scriptBlockExecutionTimeout": "02:00:00",
+					"treatDecimalAsString": false
+				}
+			},
+			{
+				"name": "Set variable1",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Get Metadata1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "fileListVar",
+					"value": [
+						"@activity('Get Metadata1').output.childItems"
+					]
+				}
+			},
+			{
+				"name": "ForEach1",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Script1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Script1').output.resultSets[0].rows\r\n",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "Script2",
+							"type": "Script",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"linkedServiceName": {
+								"referenceName": "Snowflake_ls",
+								"type": "LinkedServiceReference"
+							},
+							"typeProperties": {
+								"scripts": [
+									{
+										"type": "Query",
+										"text": {
+											"value": "CALL AZURECOURSE.PUBLIC.SP_LOAD_ALL_HOSTSA('@{item().FILE_NAME}');\n\n",
+											"type": "Expression"
+										}
+									}
+								],
+								"scriptBlockExecutionTimeout": "02:00:00",
+								"treatDecimalAsString": false
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"FILE_PREFIX": {
+				"type": "string",
+				"defaultValue": "HO"
+			}
+		},
+		"variables": {
+			"arrayty": {
+				"type": "Array"
+			},
+			"fileListVar": {
+				"type": "Array"
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2026-06-22T11:04:33Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

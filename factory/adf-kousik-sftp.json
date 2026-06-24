@@ -1,0 +1,15 @@
+{
+	"name": "adf-kousik-sftp",
+	"properties": {
+		"trustModeClaimForMi": {
+			"value": "Enabled",
+			"editable": true
+		}
+	},
+	"location": "eastus",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "52b2828a-3ed9-4d62-9f4a-2e61efbdd123",
+		"tenantId": "e339bd4b-2e3b-4035-a452-2112d502f2ff"
+	}
+}
