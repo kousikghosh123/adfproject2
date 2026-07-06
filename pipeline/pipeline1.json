@@ -23,7 +23,7 @@
 						{
 							"type": "Query",
 							"text": {
-								"value": "@concat('CALL table_create(''', pipeline().parameters.Tablename, ''');')",
+								"value": "@concat('CALL assignment.test.table_create(''', pipeline().parameters.Tablename, ''');')",
 								"type": "Expression"
 							}
 						}
