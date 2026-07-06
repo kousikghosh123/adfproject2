@@ -22,7 +22,10 @@
 					"scripts": [
 						{
 							"type": "Query",
-							"text": "call table_create('customers')"
+							"text": {
+								"value": "@concat('CALL table_create(''', pipeline().parameters.Tablename, ''');')",
+								"type": "Expression"
+							}
 						}
 					],
 					"scriptBlockExecutionTimeout": "02:00:00",
@@ -30,6 +33,12 @@
 				}
 			}
 		],
+		"parameters": {
+			"Tablename": {
+				"type": "string",
+				"defaultValue": "student"
+			}
+		},
 		"annotations": []
 	}
 }
