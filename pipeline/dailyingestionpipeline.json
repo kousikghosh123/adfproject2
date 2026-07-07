@@ -143,6 +143,40 @@
 						}
 					]
 				}
+			},
+			{
+				"name": "Script3",
+				"type": "Script",
+				"dependsOn": [
+					{
+						"activity": "Script1",
+						"dependencyConditions": [
+							"Completed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "Snowflake_ls",
+					"type": "LinkedServiceReference"
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "Query",
+							"text": "CALL AZURECOURSE.PUBLIC.TRUNC_TABLE();"
+						}
+					],
+					"scriptBlockExecutionTimeout": "02:00:00",
+					"treatDecimalAsString": false
+				}
 			}
 		],
 		"parameters": {
@@ -152,9 +186,6 @@
 			}
 		},
 		"variables": {
-			"arrayty": {
-				"type": "Array"
-			},
 			"fileListVar": {
 				"type": "Array"
 			}
